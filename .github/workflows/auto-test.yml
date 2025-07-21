@@ -1,0 +1,17 @@
+name: Auto Test Workflow
+
+on:
+  push:
+    branches:
+      - "**"   # Trigger on all branches
+
+jobs:
+  test-print:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Print a message
+        run: echo "✅ This workflow was triggered by a push to a branch!"
