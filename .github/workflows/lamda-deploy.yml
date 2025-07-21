@@ -1,0 +1,54 @@
+name: Deploy Lambda Function
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub Actions UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        region: [us-east-1, ap-south-1]  # Add more regions here
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install AWS CLI
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+
+    - name: Zip Lambda code
+      run: |
+        cd src
+        zip ../function.zip main.py
+        cd ..
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ matrix.region }}
+
+    - name: Delete previous Lambda function (if exists)
+      continue-on-error: true
+      run: |
+        aws lambda delete-function --function-name arithmetic-lambda
+
+    - name: Deploy Lambda
+      run: |
+        aws lambda create-function \
+          --function-name arithmetic-lambda \
+          --runtime python3.9 \
+          --zip-file fileb://function.zip \
+          --handler main.handler \
+          --role ${{ secrets.LAMBDA_ROLE_ARN }}
+
